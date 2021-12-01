@@ -1,0 +1,256 @@
+---
+title: "Final Project"
+author: "Kaitlyn McGrew"
+date: "11/22/2021"
+output: 
+  word_document:
+    reference_docx: style_reference.docx
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Road Design and Safety
+
+In the United States road crashes are the leading cause of death for individuals age 1-54. However, when these accidents occur personal responsibility, or the lack there of, is usually blamed for causing the accident. That doesn't tell the full picture as the way roads are designed might influence how people drive, and to make roads safer in the future, governments should pay closer attention to road design. 
+
+This report will explore how road design influences severity of road related accidents utilizing data collected in 2019 from mainland France and its overseas territories. The French government requires any accident that involves at least one victim, at least one vehicle and occurs on a road open to public traffic to be recorded in this system. An extensive amount of data is collected per accident, from the placement of each victim in each vehicle to what type of intersection, if any, the accident occurred at. A detailed explanation of each variable is provided in table A. 
+
+Along with the general exploration of how different roads and road obstacles affect the severity of accidents but also to shine light on these specific questions:
+
+1. Are reserved lanes bikes safer for bikers?
+2. Are certain types of intersections more dangerous for drivers?
+3. Are wider roads more dangerous than narrower roads?
+4. Are wide roads with low maximum speed limits more dangerous than narrow roads with low speed limits
+5. Do accidents with deaths, differ widely from those that do not?
+
+
+```{r Packages, echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(PASWR2)
+library(ggstatsplot)
+library(afex)
+```
+
+```{r Load Data, echo=TRUE, message=FALSE, warning=FALSE}
+character <- read.csv("/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/caracteristiques-2019.csv")
+location <- read.csv("/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/lieux-2019.csv")
+drivers <- read.csv("/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/usagers-2019.csv")
+vehicles <- read.csv("/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/vehicules-2019.csv")
+```
+
+```{r Data Cleaning - Accident Severity}
+accident_severity <- drivers %>% select(Num_Acc, grav) %>% 
+  mutate(grav = replace(grav, grav == 1, 0), 
+         grav = replace(grav, grav == 2, 5), 
+         grav = replace(grav, grav == 3, 2), 
+         grav = replace(grav, grav == 4, 1), 
+         grav = replace(grav, grav == 5, 3),
+         Num_Acc = as.character(Num_Acc)) %>% 
+  group_by(Num_Acc) %>% 
+  summarise(severity = sum(grav), deaths = sum(grav == 3))
+```
+
+```{r Data Cleaning - Vehicle Data}
+
+vehicles %>% group_by(catv) %>% summarise(count = n()) %>% print(n = 10)
+
+vehicles_clean <- vehicles %>% select(Num_Acc, vehicle_type = catv) %>% 
+  mutate(vehicle_type = replace(vehicle_type, vehicle_type %in% c(2, 3, 30, 31, 32, 33, 34, 35, 36), "two_wheels"),
+         vehicle_type = replace(vehicle_type, vehicle_type %in% c(7, 41, 42, 43), "passenger_car"), 
+         vehicle_type = replace(vehicle_type, vehicle_type %in% c(10, 13, 14, 15), "heavy_truck"), 
+         vehicle_type = replace(vehicle_type, vehicle_type %in% c(17, 37), "commercial_vehicle"), 
+         vehicle_type = replace(vehicle_type, vehicle_type == 1, "bicycle"), 
+         vehicle_type = as.factor(vehicle_type),
+         Num_Acc = as.character(Num_Acc)) %>% 
+  filter(vehicle_type %in% c("two_wheels", "passenger_car", "heavy_truck", "commercial_vehicle", "bicycle"))  
+
+
+vehicles_pivot <- vehicles_clean %>% 
+  group_by(Num_Acc, vehicle_type) %>% 
+  summarise(count = length(vehicle_type)) %>% 
+  pivot_wider(names_from = vehicle_type, values_from = count, values_fill = 0)
+
+```
+
+```{r Join All Data}
+char_loc <- full_join(character,location, by = "Num_Acc") %>% 
+  mutate(Num_Acc = as.character(Num_Acc))
+all_data <- full_join(char_loc, accident_severity, by = "Num_Acc")
+all_data <- inner_join(all_data, vehicles_pivot, by = "Num_Acc")
+data_raw <- all_data %>% select(Num_Acc, severity, deaths, plan, 
+                              commercial_vehicle, passenger_car, 
+                              two_wheels, heavy_truck, bicycle,
+                              intersection = int, 
+                              road_category = catr, 
+                              traffic_flow = circ, 
+                              total_num_traffic_lanes = nbv, 
+                              reserved_lanes = vosp, 
+                              gradient_of_road = prof, 
+                              width_of_road = larrout, 
+                              max_auth_speed = vma, 
+                              infrastructure_type = infra) %>%
+  mutate_all(~ifelse(is.nan(.), NA, .))
+```
+
+```{r Data Cleaning - Categorical Data}
+data_clean <- data_raw %>% mutate(intersection = as.factor(intersection), 
+                                  road_category = as.factor(road_category),
+                                  traffic_flow = as.factor(traffic_flow), 
+                                  reserved_lanes = as.factor(reserved_lanes),
+                                  gradient_of_road = as.factor(gradient_of_road), 
+                                  infrastructure_type = as.factor(infrastructure_type))
+
+```
+
+```{r Data Exploration - Severity & Deaths}
+data_raw %>% filter(!is.na(severity)) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .95), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+
+data_raw %>% filter(!is.na(severity)) %>% group_by(intersection) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+
+data_raw %>% filter(!is.na(severity)) %>% group_by(road_category) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+
+data_raw %>% filter(!is.na(severity)) %>% group_by(traffic_flow) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+
+data_raw %>% filter(!is.na(severity)) %>% group_by(reserved_lanes) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+
+data_raw %>% filter(!is.na(severity)) %>% group_by(infrastructure_type) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+
+gghistostats(data = data_clean, x = severity,   binwidth = 1)
+```
+
+```{r Data Exploration - Intersection}
+
+intersectiondata <- data_clean %>% group_by(intersection)  %>% summarise(avg_severity = mean(severity), count = n(), total_deaths = sum(deaths))
+
+intersectiondata
+
+ggbetweenstats(data = dplyr::filter(data_clean, intersection %in% c(2,3,4,5,6)), x = intersection, y = severity)
+
+ggbetweenstats(data = dplyr::filter(data_clean, intersection %in% c(2,3,4,5,6)), x = intersection, y = deaths)
+
+```
+
+```{r Data Exploration - Road Category}
+roaddata <- data_clean %>% group_by(road_category)  %>% summarise(avg_severity = mean(severity), count = n())
+roaddata
+
+ggbetweenstats(data = dplyr::filter(data_clean, road_category %in% c(1,2,3,4,7)), x = road_category, y = severity)
+
+```
+
+```{r Data Exploration - Traffic Flow}
+traffic_flowdata <- data_clean %>% group_by(traffic_flow)  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed, na.rm = TRUE))
+
+traffic_flowdata
+
+ggbetweenstats(data = data_clean, x = traffic_flow, y = severity)
+
+ggbetweenstats(data = data_clean, x = traffic_flow, y =  deaths)
+```
+
+```{r Data Exploration - Reserved Lane}
+reserved_lanesdata <- data_clean %>% group_by(reserved_lanes)  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed, na.rm = TRUE))
+
+reserved_lanesdata
+
+ggbetweenstats(data = dplyr::filter(data_clean, reserved_lanes %in% c(0,1,2,3)),x = reserved_lanes, y = severity)
+
+```
+
+```{r Data Exploration - Infrastructure Type}
+infrastructure_typedata <- data_clean %>% group_by(deaths, infrastructure_type)  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed, na.rm = TRUE))
+
+infrastructure_typedata
+
+ggbetweenstats(data = dplyr::filter(data_clean, infrastructure_type %in% c(0,1,2,3,4,5,7)),x = infrastructure_type, y = severity)
+
+```
+
+```{r Data Exploration - Max Authorized Speed}
+max_auth_speeddata <- data_clean %>% filter(!is.na(max_auth_speed))  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed), max_speed = max(max_auth_speed), min_speed = min(max_auth_speed), sd = sd(max_auth_speed))
+max_auth_speeddata
+
+gghistostats(data = data_clean, x = max_auth_speed,   binwidth = 1)
+
+```
+
+```{r Data Exploration - Road Width}
+width_of_roadsum <- data_clean %>% filter(!is.na(width_of_road)) %>% summarise(avg_severity = mean(severity, na.rm = TRUE), count = n(), avg_width = mean(width_of_road , na.rm = TRUE), max_width = max(width_of_road), min_width = min(width_of_road), sd = sd(width_of_road))
+width_of_roadsum 
+
+gghistostats(data = data_clean, x = width_of_road,   binwidth = 1)
+```
+
+```{r Creating Control}
+control <- data_clean %>% filter(road_category %in% c( 3,4, 5) & 
+                                traffic_flow == 2 & 
+                                reserved_lanes == 0 & 
+                                infrastructure_type == 0)
+```
+
+```{r Analysis - Road Width}
+
+width_data <- control %>% filter(!is.na(width_of_road) & width_of_road < 100 & intersection == 1) %>% mutate(width_category = as.factor(case_when(
+  width_of_road < 6 ~ "narrow", 
+  width_of_road > 6 & width_of_road < 15 ~ "medium_narrow",  
+  width_of_road > 15 & width_of_road < 60 ~ "medium_wide", 
+  width_of_road > 60 ~ "wide")))
+
+width_data %>% group_by(width_category) %>% summarise(avg_severity = mean(severity), count = n())
+
+ggbetweenstats(data = width_data, x = width_category, y = severity)
+
+ggbetweenstats(data = width_data, x = width_category, y = deaths)
+
+```
+
+```{r Analysis - Max Speed & Width}
+max_auth_speeddata <- control %>% filter(!is.na(max_auth_speed) & intersection == 1)  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed), max_speed = max(max_auth_speed), min_speed = min(max_auth_speed), sd = sd(max_auth_speed))
+max_auth_speeddata
+
+speed_width <- control %>% filter(!is.na(width_of_road) & !is.na(max_auth_speed) & intersection == 1) %>% select(Num_Acc, severity, deaths, width_of_road, max_auth_speed) %>% mutate(width_speed = case_when(
+  width_of_road > 10 & max_auth_speed < 60 ~ "lowspeed_wide", 
+  width_of_road > 10 & max_auth_speed > 60 ~ "highspeed_wide", 
+  width_of_road < 10 & max_auth_speed < 60 ~ "lowspeed_narrow", 
+  width_of_road < 10 & max_auth_speed > 60 ~ "highspeed_narrow"))
+
+
+ggbetweenstats(data = speed_width,x = width_speed, y = severity)
+
+ggbetweenstats(data = speed_width, x = width_speed, y = deaths)
+
+```
+
+```{r Analysis - Intersection Type & Vehicle Type}
+
+control %>% filter(intersection %in% c(2,3,4,5,6)) %>% group_by(intersection) %>% summarise(passenger_car = sum(passenger_car), bicycle = sum(bicycle), two_wheels = sum(two_wheels), heavy_truck = sum(heavy_truck))
+
+
+ggbetweenstats(data = dplyr::filter(control, intersection %in% c(2,3,4,5,6) & passenger_car >= 1), x = intersection, y = severity)
+
+ggbetweenstats(data = dplyr::filter(control, intersection %in% c(2,3,4,5,6) & bicycle >= 1), x = intersection, y = severity)
+
+ggbetweenstats(data = dplyr::filter(control, intersection %in% c(2,3,4,5,6) & two_wheels >= 1), x = intersection, y = severity)
+
+ggbetweenstats(data = dplyr::filter(control, intersection %in% c(2,3,4,5,6) & heavy_truck >= 1), x = intersection, y = severity)
+```
+
+```{r Analysis - Reserved Lanes & Bikes}
+control_bikes <- data_clean %>% filter(road_category %in% c( 3,4, 5) & traffic_flow == 2 & infrastructure_type == 0 & bicycle >=1 & reserved_lanes %in% c(0,1,2))
+
+ggbetweenstats(data = control_bikes, x = reserved_lanes, y = severity)
+
+ggbetweenstats(data = control_bikes, x = reserved_lanes, y = deaths)
+
+```
+
+```{r Analysis - Deadly Accidents}
+deadly_accidents <- data_clean %>% mutate(death_occured = case_when(deaths > 0 ~ "yes", 
+                                                                    deaths == 0 ~ "no"))
+
+ggbetweenstats(data = deadly_accidents, x = death_occured, y = max_auth_speed)
+
+
+```
