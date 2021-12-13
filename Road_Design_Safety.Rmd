@@ -1,47 +1,175 @@
 ---
-title: "Final Project"
+title: "Road Design & Safety"
+subtitle: "University of Colorado Boulder STAT 5000 Final Project"
 author: "Kaitlyn McGrew"
-date: "11/22/2021"
-output: 
-  word_document:
-    reference_docx: style_reference.docx
+date: "11/30/2021"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    df_print: kable
+    highlight: tango
+fontsize: 10pt
+margin: 1in
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, tidy = TRUE, message=FALSE, warning=FALSE, fig.height=4.5)
 ```
 
-# Road Design and Safety
+\newpage
 
-In the United States road crashes are the leading cause of death for individuals age 1-54. However, when these accidents occur personal responsibility, or the lack there of, is usually blamed for causing the accident. That doesn't tell the full picture as the way roads are designed might influence how people drive, and to make roads safer in the future, governments should pay closer attention to road design. 
+# Introduction
 
-This report will explore how road design influences severity of road related accidents utilizing data collected in 2019 from mainland France and its overseas territories. The French government requires any accident that involves at least one victim, at least one vehicle and occurs on a road open to public traffic to be recorded in this system. An extensive amount of data is collected per accident, from the placement of each victim in each vehicle to what type of intersection, if any, the accident occurred at. A detailed explanation of each variable is provided in table A. 
+Individuals around the world drive on government owned roads almost everyday, and for many everyday of their lives. However, when accidents occur personal responsibility, or the lack there of, is usually blamed for causing the accident. That doesn't tell the full picture as the way roads are designed might influence how people drive, and to make roads safer in the future, governments should pay closer attention to the road features used. 
 
-Along with the general exploration of how different roads and road obstacles affect the severity of accidents but also to shine light on these specific questions:
+This report will explore how road design influences severity of road related accidents utilizing data collected in 2019 from mainland France and its overseas territories. The French government requires any accident that involves at least one victim, at least one vehicle and occurs on a road open to public traffic to be recorded in this system. An extensive amount of data is collected per accident, from the placement of each victim in each vehicle to what type of intersection, if any, the accident occurred at.
 
-1. Are reserved lanes bikes safer for bikers?
-2. Are certain types of intersections more dangerous for drivers?
-3. Are wider roads more dangerous than narrower roads?
-4. Are wide roads with low maximum speed limits more dangerous than narrow roads with low speed limits
-5. Do accidents with deaths, differ widely from those that do not?
+## Main Questions
 
+Along with the general exploration of how different types of roads and road obstacles effect the severity of accidents this report will also attempt to investigate these specific questions:
+
+1. Are reserved lanes for bicycles safer for cyclists?
+2. Are certain types of intersections more or less dangerous for different types of vehicles?
+3. Are certain types of roads more or less dangerous for different types of vehicles?
+4. Are wide roads with low speed limits more dangerous than narrow roads with low speed limits?
+
+## Data Reference
+
+National Inter Ministerial Road Safety Observatory 2019 (https://www.kaggle.com/dorianvoydie/2019-database-of-road-traffic-injuries)
+
+
+# Data Preprocessing
+
+## Packages & Loading
 
 ```{r Packages, echo=TRUE, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(PASWR2)
 library(ggstatsplot)
 library(afex)
+library(kableExtra)
 ```
+
+```{r File Names, warning=FALSE, include=FALSE}
+character_csv <- "/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/caracteristiques-2019.csv"
+location_csv <- "/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/lieux-2019.csv"
+driver_csv <- "/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/usagers-2019.csv"
+vehicle_csv <- "/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/vehicules-2019.csv"
+```
+
+\newpage
+### File Descriptions 
+
+The tables below detail each variable available in each file. The tables provide the names of the variable as they are in the original file (in French), the English translation used for this report, a short description of each variable and if that variable is used in this report.
+
+#### Vehicle (Vehicules-2019)
+
+| Variable (French) | Variable (English)            | Description                                                                               | Used |
+|-------------------|-------------------------------|-------------------------------------------------------------------------------------------|------|
+| Num_Acc           | accident_number               | Accident ID number                                                                        | Yes  |
+| id_vehicule       | vehicle_number                | Vehicle ID number                                                                         | No   |
+| num_veh           | vehicle_letter_code           | Vehicle ID character code                                                                 | No   |
+| senc              | flow_direction                | Direction the vehicle was moving via postal code direction (increasing or decreasing      | No   |
+| catv              | vehicle_type                  | Type of vehicle, by size axle number and general use (commercial, public, personal)       | Yes  |
+| obs               | fixedobstaclestruck         | If a fixed object was struck, specifying what kind                                        | No   |
+| obsm              | movableobstaclestruck       | If a movable object was struck, specifying what kind                                      | No   |
+| choc              | initial_shock_point           | Where on the vehicle was it struck                                                        | No   |
+| manv              | mainmaneuverbaccident | What maneuver the vehicle took before collision occurred                                  | No   |
+| motor             | engine_type                   | Engine type                                                                               | No   |
+| occutc            | numoccupantspubtransit  | If accident involved public transit, indicates how many people were in the public vehicle | No   |
+
+#### Drivers (Usagers-2019)
+
+| Variable (French) | Variable (English) | Description                                                                                                     | Used |
+|-------------------|--------------------|-----------------------------------------------------------------------------------------------------------------|------|
+| Num_Acc           | Num_Acc     | Accident ID number                                                                                              | Yes  |
+| id_vehicule       | veh_number     | Vehicle ID number                                                                                               | No   |
+| num_veh           | PassengerID        | Passenger ID number                                                                                             | No   |
+| place             | PassengerLoc  | Location of the passenger in the vehicle before the accident                                                    | No   |
+| catu              | Type               | Type of passenger, driver passenger, pedestrian                                                                 | No   |
+| grav              | severity           | severity of the injury                                                                                          | Yes  |
+| sexe              | gender             | Gender of passenger                                                                                             | No   |
+| an_nais           | birthyear          | Birth year of passenger                                                                                         | No   |
+| trajet            | travel             | Reason for travel                                                                                               | No   |
+| secu1             | security1          | Security equipment used                                                                                         | No   |
+| secu2             | security2          | Security equipment used                                                                                         | No   |
+| secu3             | security3          | Security equipment used                                                                                         | No   |
+| locp              | location_ped       | Location if the person was a pedestrian (not in the vehicle but came into contact with the vehicle)             | No   |
+| actp              | action_ped         | Action of the person if the person was a pedestrian (not in the vehicle but came into contact with the vehicle) | No   |
+| etatp             | alone_ped          | If the person was alone or not if the person was a pedestrian                                                   | No   |
+
+\newpage
+#### Character (caracteristiques-2019)
+
+| Variable (French) | Variable (English) | Description                                                        | Used |
+|-------------------|--------------------|--------------------------------------------------------------------|------|
+| Num_Acc           | accident_number    | Accident ID number                                                 | Yes  |
+| jour_mois         | day                | Vehicle ID number                                                  | No   |
+| an                | year               | Year accident occurred (2019)                                      | No   |
+| hrmn              | hours_min          | Hour/minute accident occurred                                      | No   |
+| lum               | light              | Lighting type of the location where the accident occurred          | No   |
+| dep               | department         | Department of the location where the accident occurred             | No   |
+| com               | municipality       | Municipality of the location where the accident occurred           | No   |
+| agg               | location_cat       | Location type (agriculture area or not)                            | No   |
+| int               | intersection       | Intersection type if the accident occurred near/at an intersection | Yes  |
+| atm               | atm_conditions     | Weather conditions                                                 | No   |
+| col               | collision_type     | Collision type - head one, T-bone etc.                             | No   |
+| adr               | address            | Address                                                            | No   |
+| lat               | lat                | Latitude                                                           | No   |
+| long              | long               | Longitude                                                          | No   |
+
+#### Location (lieux-2019)
+
+| Variable (French) | Variable (English)     | Description                                        | Used |
+|-------------------|------------------------|----------------------------------------------------|------|
+| Num_Acc           | accident_number        | Accident ID number                                 | Yes  |
+| catr              | road_category          | Type of road accident occurred on                  | Yes  |
+| voie              | route_number           | Route ID number                                    | No   |
+| v1                | num_index_road         | Road ID number                                     | No   |
+| v2                | char_index_road        | Road character code                                | No   |
+| circ              | traffic_flow           | Flow of traffic on the road accident occurred      | Yes  |
+| nbv               | totalnum_traffic_lanes | Total number of traffic lanes of road              | No   |
+| vosp              | reserved_lanes         | If there are designated lanes (for bikes or buses) | Yes  |
+| prof              | gradient_of_road       | If the road was on a flat surface or a hill        | No   |
+| pr                | ID_terminal            | Terminal ID number                                 | No   |
+| plan              | plan                   | Road curvature                                     | No   |
+| lartpc            | width_central_reserve  | Width of central reserve lane (if there is one)    | No   |
+| larrout           | width_of_road          | Width of the road (in meters)                      | Yes  |
+| surf              | surface_condition      | Condition of the road (wet, puddles, dry, ice etc) | No   |
+| infra             | infrastructure_type    | Special infrastructure where the accident occurred | Yes  |
+| situ              | location_of_accident   | Location of the accident on the road               | No   |
+| vma               | max_auth_speed         | Speed Limit where accident occurred                | Yes  |
+
 
 ```{r Load Data, echo=TRUE, message=FALSE, warning=FALSE}
-character <- read.csv("/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/caracteristiques-2019.csv")
-location <- read.csv("/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/lieux-2019.csv")
-drivers <- read.csv("/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/usagers-2019.csv")
-vehicles <- read.csv("/Users/kaitlynmcgrew/Desktop/CUB_S1/STAT5000/Final Project/STAT5000_FinalProject/vehicules-2019.csv")
+character <- read.csv(character_csv)
+location <- read.csv(location_csv)
+drivers <- read.csv(driver_csv)
+vehicles <- read.csv(vehicle_csv)
 ```
 
+\newpage
+
+## Data Cleaning
+
+### Accident Severity
+
+The goal is to combine all the necessary variables into one, usable table. The first step is to aggregate the passenger data so there is one row per accident that has both the severity metric and the number of deaths if any occurred. The severity metric is an integer that is the sum of all the passengers level of injury. The raw data (variable: severity or grav) shows each person split into 1 of 4 categories, detailed in the table below. Each category is given a numerical value, and then all are added together to create one single severity number per accident. For example, if an accident involved three people, one was unharmed, another was injured but did not go to the hospital and the last died, that accidents severity metric would be 4.
+
+
+| Injury Level           | New Category Number  | Original Category Number |
+|------------------------|----------------------|--------------------------|
+| Unharmed               | 0                    | 1                        |
+| Slightly injured       | 1                    | 2                        |
+| Injured (hospitalized) | 2                    | 4                        |
+| Killed                 | 3                    | 2                        |
+
+Note: the original dataset had different category numbers for each injury level (shown in the table), for this report they were switched to improve clarity and to have the category number increase with the level of injury sustained to allow for the aggregated severity metric to be properly calculated.
+
 ```{r Data Cleaning - Accident Severity}
-accident_severity <- drivers %>% select(Num_Acc, grav) %>% 
+accident_severity <- drivers %>% 
+  select(Num_Acc, grav) %>% 
   mutate(grav = replace(grav, grav == 1, 0), 
          grav = replace(grav, grav == 2, 5), 
          grav = replace(grav, grav == 3, 2), 
@@ -52,205 +180,505 @@ accident_severity <- drivers %>% select(Num_Acc, grav) %>%
   summarise(severity = sum(grav), deaths = sum(grav == 3))
 ```
 
-```{r Data Cleaning - Vehicle Data}
+### Vehicle Types
 
+In the original dataset there were over 20 different categories for vehicle type. However, there were general groupings of those categories so for simplicity and clarity, the categories were combined into those general groups. Two vehicle types were filtered out, trains and tramways. For details on the original categories please view the original dataset description file, provided with the raw data.
+
+```{r Data Cleaning - Vehicle Data, echo=TRUE, message=FALSE, warning=FALSE}
 vehicles %>% group_by(catv) %>% summarise(count = n()) %>% print(n = 10)
 
-vehicles_clean <- vehicles %>% select(Num_Acc, vehicle_type = catv) %>% 
-  mutate(vehicle_type = replace(vehicle_type, vehicle_type %in% c(2, 3, 30, 31, 32, 33, 34, 35, 36), "two_wheels"),
+vehicles_clean <- vehicles %>% 
+select(Num_Acc, vehicle_type = catv) %>% 
+  filter(vehicle_type %in% 
+           c(2, 3, 30, 31, 32, 33, 34, 35, 36, 7, 41, 42, 43, 10, 13, 14, 15, 17, 37,1)) %>%
+  mutate(vehicle_type = replace(vehicle_type, vehicle_type %in% 
+                                  c(2, 3, 30, 31, 32, 33, 34, 35, 36), "two_wheels"),
          vehicle_type = replace(vehicle_type, vehicle_type %in% c(7, 41, 42, 43), "passenger_car"), 
          vehicle_type = replace(vehicle_type, vehicle_type %in% c(10, 13, 14, 15), "heavy_truck"), 
          vehicle_type = replace(vehicle_type, vehicle_type %in% c(17, 37), "commercial_vehicle"), 
          vehicle_type = replace(vehicle_type, vehicle_type == 1, "bicycle"), 
          vehicle_type = as.factor(vehicle_type),
          Num_Acc = as.character(Num_Acc)) %>% 
-  filter(vehicle_type %in% c("two_wheels", "passenger_car", "heavy_truck", "commercial_vehicle", "bicycle"))  
+  filter(vehicle_type %in% 
+           c("two_wheels", "passenger_car", "heavy_truck", "commercial_vehicle", "bicycle"))  
 
 
 vehicles_pivot <- vehicles_clean %>% 
   group_by(Num_Acc, vehicle_type) %>% 
   summarise(count = length(vehicle_type)) %>% 
   pivot_wider(names_from = vehicle_type, values_from = count, values_fill = 0)
-
 ```
+
+
+Here is where the four data sets are combined into one table, the variables are renamed from French to English and all NaN values are changed to NA. The categorical variables are then changed to factors. 
 
 ```{r Join All Data}
 char_loc <- full_join(character,location, by = "Num_Acc") %>% 
   mutate(Num_Acc = as.character(Num_Acc))
 all_data <- full_join(char_loc, accident_severity, by = "Num_Acc")
 all_data <- inner_join(all_data, vehicles_pivot, by = "Num_Acc")
-data_raw <- all_data %>% select(Num_Acc, severity, deaths, plan, 
-                              commercial_vehicle, passenger_car, 
-                              two_wheels, heavy_truck, bicycle,
-                              intersection = int, 
-                              road_category = catr, 
-                              traffic_flow = circ, 
-                              total_num_traffic_lanes = nbv, 
-                              reserved_lanes = vosp, 
-                              gradient_of_road = prof, 
-                              width_of_road = larrout, 
-                              max_auth_speed = vma, 
-                              infrastructure_type = infra) %>%
+data_raw <- all_data %>% 
+  select(Num_Acc, severity, deaths, 
+         commercial_vehicle, passenger_car, 
+         two_wheels, heavy_truck, bicycle,
+         intersection = int, 
+         road_category = catr, 
+         traffic_flow = circ,
+         reserved_lanes = vosp, 
+         width_of_road = larrout, 
+         max_auth_speed = vma, 
+         infrastructure_type = infra) %>%
   mutate_all(~ifelse(is.nan(.), NA, .))
 ```
 
 ```{r Data Cleaning - Categorical Data}
-data_clean <- data_raw %>% mutate(intersection = as.factor(intersection), 
-                                  road_category = as.factor(road_category),
-                                  traffic_flow = as.factor(traffic_flow), 
-                                  reserved_lanes = as.factor(reserved_lanes),
-                                  gradient_of_road = as.factor(gradient_of_road), 
-                                  infrastructure_type = as.factor(infrastructure_type))
-
+data_clean <- data_raw %>% 
+  mutate(intersection = as.factor(intersection), 
+         road_category = as.factor(road_category),
+         traffic_flow = as.factor(traffic_flow), 
+         reserved_lanes = as.factor(reserved_lanes),
+         infrastructure_type = as.factor(infrastructure_type))
 ```
 
+\newpage
+
+# Data Exploration
+
+The goal of this section is to explore how the different variables effect the severity of the accidents. This is also to determine which categories should be used for further analysis to prevent bias when evaluating the main questions.
+
+## Severity & Deaths
+
 ```{r Data Exploration - Severity & Deaths}
-data_raw %>% filter(!is.na(severity)) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .95), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+data_clean %>% 
+  summarise(count = n(), 
+            mean = mean(severity), 
+            sd = sd(severity), 
+            upper_q = quantile(severity, .95), 
+            avg_deaths = mean(deaths), 
+            total_deaths = sum(deaths))
 
-data_raw %>% filter(!is.na(severity)) %>% group_by(intersection) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+passenger <- data_clean %>% 
+  filter(passenger_car >=1) %>% 
+  summarise( mean = mean(severity), 
+             sd = sd(severity), 
+             upper_q = quantile(severity, .95), 
+             avg_deaths = mean(deaths))
 
-data_raw %>% filter(!is.na(severity)) %>% group_by(road_category) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+bike <- data_clean %>% 
+  filter(bicycle >=1) %>% 
+  summarise( mean = mean(severity), 
+             sd = sd(severity), 
+             upper_q = quantile(severity, .95), 
+             avg_deaths = mean(deaths))
 
-data_raw %>% filter(!is.na(severity)) %>% group_by(traffic_flow) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+two_wheels <- data_clean %>% 
+  filter(two_wheels >=1) %>% 
+  summarise(mean = mean(severity), 
+            sd = sd(severity), 
+            upper_q = quantile(severity, .95), 
+            avg_deaths = mean(deaths))
 
-data_raw %>% filter(!is.na(severity)) %>% group_by(reserved_lanes) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+com_vehicle <- data_clean %>% 
+  filter(commercial_vehicle >=1) %>% 
+  summarise( mean = mean(severity), 
+             sd = sd(severity), 
+             upper_q = quantile(severity, .95), 
+             avg_deaths = mean(deaths))
 
-data_raw %>% filter(!is.na(severity)) %>% group_by(infrastructure_type) %>% summarise(count = n(), mean = mean(severity), sd = sd(severity), upper_q = quantile(severity, .99), avg_deaths = mean(deaths), total_deaths = sum(deaths))
+bind_rows(list("commercial vehicle" = com_vehicle, 
+               "two wheels" = two_wheels, 
+               "passenger" = passenger, 
+               "bike" = bike), 
+          .id = "id")
 
 gghistostats(data = data_clean, x = severity,   binwidth = 1)
 ```
 
-```{r Data Exploration - Intersection}
 
-intersectiondata <- data_clean %>% group_by(intersection)  %>% summarise(avg_severity = mean(severity), count = n(), total_deaths = sum(deaths))
+The mean severity overall is about 1.8, with 95% of accidents falling below at severity score of 4. When looking at the average severity for different vehicle types they decrease in severity by commercial vehicles, passenger cars, motorized vehicles with two axles, and then bikes. However, because accidents can include multiple vehicles, some accidents are double counted in these measurements. 
+
+\newpage
+## Intersection Type
+
+The table below describes each category for the intersection variable.
+
+| Category Number | Description                            |
+|-----------------|----------------------------------------|
+| 1               | Outside an intersection                |
+| 2               | X intersection                         |
+| 3               | T intersection                         |
+| 4               | Y intersection                         |
+| 5               | Intersection with more than 4 branches |
+| 6               | Roundabout                             |
+| 7               | Square                                 |
+| 8               | Railroad crossing                      |
+| 9               | Other                                  |
+
+```{r Data Exploration - Intersection, echo=TRUE, message=FALSE, warning=FALSE}
+intersectiondata <- data_clean %>% 
+  group_by(intersection)  %>% 
+  summarise(count = n(), 
+            avg_severity = mean(severity), 
+            total_deaths = sum(deaths))
 
 intersectiondata
 
-ggbetweenstats(data = dplyr::filter(data_clean, intersection %in% c(2,3,4,5,6)), x = intersection, y = severity)
-
-ggbetweenstats(data = dplyr::filter(data_clean, intersection %in% c(2,3,4,5,6)), x = intersection, y = deaths)
-
+ggbetweenstats(data = dplyr::filter(data_clean, intersection %in% c(1,2,3,4,5,6,7)), 
+               x = intersection, 
+               y = severity)
 ```
 
-```{r Data Exploration - Road Category}
-roaddata <- data_clean %>% group_by(road_category)  %>% summarise(avg_severity = mean(severity), count = n())
+From this initial look, the majority of accidents in the dataset did not occur at an intersection, and those that did were less severe. The only intersection that significantly different from the others was a square intersection. Further analysis may show there is a difference depending on the vehicle type involved in the accident as there was a difference in average severity between the four categories.
+
+\newpage
+## Road Type
+
+The table below describes each category for the road type variable.
+
+| Category Number | Description    |
+|-----------------|----------------|
+| 1               | Highway        |
+| 2               | National road  |
+| 3               | Municipal road |
+| 4               | Communal road  |
+| 5               | Private road   |
+| 6               | Parking Lot    |
+| 7               | Urban street   |
+| 9               | Other          |
+
+```{r Data Exploration - Road Category, message=FALSE, warning=FALSE}
+roaddata <- data_clean %>% 
+  group_by(road_category)  %>% 
+  summarise(count = n(), 
+            avg_severity = mean(severity), 
+            total_deaths = sum(deaths))
 roaddata
 
-ggbetweenstats(data = dplyr::filter(data_clean, road_category %in% c(1,2,3,4,7)), x = road_category, y = severity)
-
+ggbetweenstats(data = dplyr::filter(data_clean, road_category %in% c(1,2,3,4,7)), 
+               x = road_category, 
+               y = severity)
 ```
 
+The majority of accidents occurred on municipal and communal roads, with communal roads having the lowest average severity and municipal roads having the highest. 
+
+\newpage
+## Traffic Flow
+
+The table below describes each category for the traffic flow variable.
+
+| Category Number | Description                                         |
+|-----------------|-----------------------------------------------------|
+| -1              | Not specified                                       |
+| 1               | One way                                             |
+| 2               | Bidirectional                                       |
+| 3               | Separated roadway                                   |
+| 4               | Roads with assigned lines (for public transit) |
+
 ```{r Data Exploration - Traffic Flow}
-traffic_flowdata <- data_clean %>% group_by(traffic_flow)  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed, na.rm = TRUE))
+traffic_flowdata <- data_clean %>% 
+  group_by(traffic_flow)  %>% 
+  summarise(count = n(), 
+            avg_severity = mean(severity), 
+            total_deaths = sum(deaths))
 
 traffic_flowdata
 
-ggbetweenstats(data = data_clean, x = traffic_flow, y = severity)
-
-ggbetweenstats(data = data_clean, x = traffic_flow, y =  deaths)
+ggbetweenstats(data = data_clean, 
+               x = traffic_flow, 
+               y = severity)
 ```
 
+As one would expect, two way streets with no barrier had the highest average severity while one way streets had the lowest. There is also a significant difference between two way streets with no barrier (2) and those with a separation, indicating that building roads like that would decrease the severity of accidents.
+
+\newpage
+## Reserved Lanes
+
+The table below describes each category for the reserved lanes variable.
+
+| Category Number | Description    |
+|-----------------|----------------|
+| -1              | Not specified  |
+| 0               | Not applicable |
+| 1               | Cycle path     |
+| 2               | Cycle lane     |
+| 3               | Reserved lane (for buses) |
+
 ```{r Data Exploration - Reserved Lane}
-reserved_lanesdata <- data_clean %>% group_by(reserved_lanes)  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed, na.rm = TRUE))
+reserved_lanesdata <- data_clean %>% 
+  group_by(reserved_lanes)  %>% 
+  summarise(count = n(), 
+            avg_severity = mean(severity), 
+            total_deaths = sum(deaths))
 
 reserved_lanesdata
 
-ggbetweenstats(data = dplyr::filter(data_clean, reserved_lanes %in% c(0,1,2,3)),x = reserved_lanes, y = severity)
-
+ggbetweenstats(data = dplyr::filter(data_clean, reserved_lanes %in% c(0,1,2,3)),
+               x = reserved_lanes, 
+               y = severity)
 ```
 
+When just comparing the categories for all accidents, there doesn't seem to be a decrease in severity of accidents if there is a reserved lane. However, they are all significantly less severe than accidents that did not occur on a road with one of the reserved lane types.
+
+\newpage
+## Infrastructure Type
+
+The table below describes each category for the infrastructure type variable.
+
+| Category Number | Description           |
+|-----------------|-----------------------|
+| -1              | Not specified         |
+| 0               | Not applicable        |
+| 1               | Underground tunnel    |
+| 2               | Bridge                |
+| 3               | Changing intersection |
+| 4               | Railroad track        |
+| 5               | Arranged crossroads   |
+| 6               | Pedestrian zone       |
+| 7               | Toll zone             |
+| 8               | Work site             |
+| 9               | Other                 |
+
 ```{r Data Exploration - Infrastructure Type}
-infrastructure_typedata <- data_clean %>% group_by(deaths, infrastructure_type)  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed, na.rm = TRUE))
+infrastructure_typedata <- data_clean %>% 
+  group_by(infrastructure_type)  %>% 
+  summarise(count = n(), 
+            avg_severity = mean(severity), 
+            total_deaths = sum(deaths))
 
 infrastructure_typedata
 
-ggbetweenstats(data = dplyr::filter(data_clean, infrastructure_type %in% c(0,1,2,3,4,5,7)),x = infrastructure_type, y = severity)
-
+ggbetweenstats(data = dplyr::filter(data_clean, infrastructure_type %in% c(0,1,2,3,4,5,7)),
+               x = infrastructure_type, 
+               y = severity)
 ```
 
-```{r Data Exploration - Max Authorized Speed}
-max_auth_speeddata <- data_clean %>% filter(!is.na(max_auth_speed))  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed), max_speed = max(max_auth_speed), min_speed = min(max_auth_speed), sd = sd(max_auth_speed))
+The only infrastructure type that showed a significant difference was underground tunnels, this would make sense as most tunnels do not have incoming or merging traffic and cars travel in one direction or with a barrier between the traffic flows.
+
+\newpage
+## Speed Limit
+
+```{r Data Exploration - Max Authorized Speed, message=FALSE, warning=FALSE}
+max_auth_speeddata <- data_clean %>% 
+  filter(!is.na(max_auth_speed))  %>% 
+  summarise(count = n(), 
+            avg_severity = mean(severity, na.rm = TRUE),
+            avg_speed = mean(max_auth_speed), 
+            max_speed = max(max_auth_speed), 
+            min_speed = min(max_auth_speed), 
+            sd = sd(max_auth_speed))
+
 max_auth_speeddata
 
-gghistostats(data = data_clean, x = max_auth_speed,   binwidth = 1)
+gghistostats(data = data_clean, 
+             x = max_auth_speed,   
+             binwidth = 10)
 
+ggscatterstats(data = dplyr::filter(data_clean, max_auth_speed <= 130), 
+               x = max_auth_speed, 
+               y = severity)
 ```
 
-```{r Data Exploration - Road Width}
-width_of_roadsum <- data_clean %>% filter(!is.na(width_of_road)) %>% summarise(avg_severity = mean(severity, na.rm = TRUE), count = n(), avg_width = mean(width_of_road , na.rm = TRUE), max_width = max(width_of_road), min_width = min(width_of_road), sd = sd(width_of_road))
+
+
+The average speed limit is just above 60 km/h or about 37 m/h. However, there does appear to be some inaccuracies in the data, as the largest speed limit in the dataset is 800 km/h which would be about 500 m/h. For further analysis, the speed limit will be limited to 130 k/h as that is the highest speed limit in France. 
+
+The scatterplot shows there is a correlation between increased speeds and increased severity of accidents. To find a suitable range for a control, the data will be split into groups. These groups are based off of the residential or urban, rural roads, express ways, and freeways standard speeds which are 50 km/h, 80 km/h, 110 km/h and 130km/h respectively. Expressways and freeways were combined into one category for simplicity.  
+
+
+
+```{r Data Exploration - Speed - Categorical}
+speed_data <- data_clean %>% 
+  filter(!is.na(max_auth_speed)) %>% 
+  mutate(speed_category = as.factor(case_when(
+    max_auth_speed <= 50 ~ "low", 
+    max_auth_speed > 50 & max_auth_speed <= 80 ~ "medium",  
+    max_auth_speed > 80 & max_auth_speed <= 135 ~ "high")))
+
+speed_data %>% 
+  group_by(speed_category) %>% 
+  summarise(avg_severity = mean(severity), 
+            count = n())
+
+ggbetweenstats(data = speed_data, 
+               x = speed_category, 
+               y = severity)
+```
+
+All three categories have significant difference in severity of accidents, which is to be expected. However, it is interesting that the medium category, or rural roads has the highest severity, even over the high category which includes freeways.
+
+\newpage
+## Road Width
+
+```{r Data Exploration - Road Width, message=FALSE, warning=FALSE}
+width_of_roadsum <- data_clean %>% 
+  filter(!is.na(width_of_road)) %>% 
+  summarise(count = n(), 
+            avg_severity = mean(severity, na.rm = TRUE),
+            avg_width = mean(width_of_road , na.rm = TRUE), 
+            max_width = max(width_of_road), 
+            min_width = min(width_of_road), 
+            sd = sd(width_of_road))
 width_of_roadsum 
 
 gghistostats(data = data_clean, x = width_of_road,   binwidth = 1)
+
+ggscatterstats(data = dplyr::filter(data_clean, width_of_road <= 200), 
+               x = width_of_road, 
+               y = severity)
 ```
 
-```{r Creating Control}
-control <- data_clean %>% filter(road_category %in% c( 3,4, 5) & 
-                                traffic_flow == 2 & 
-                                reserved_lanes == 0 & 
-                                infrastructure_type == 0)
+Very few of the accidents recorded have a number recorded for this variable and those that do have a much higher average severity (2.47) compared to the overall average (1.79), this could influence any further analysis that involves this variable. There does not appear to be a correlation between severity and road width as well.
+
+\newpage
+# Data Analysis
+
+## Creating Control
+
+For each of the following sections the dataset is filtered down to a control dataset. This is based off of findings from the data exploration section, the goal is to try to create a subset of the data that does not have interfering variables except for the one the question being asked revolves around. If the other variables were left as is, this could create a biased result.
+
+## Reserved Lanes and Bicycles
+
+This section will try to see if there is any difference in severity for accidents that involved at least one bicycle.
+
+```{r Analysis - Reserved Lanes & Bikes, message=FALSE, warning=FALSE}
+control_bikes <- data_clean %>% 
+  filter(road_category == 4, 
+         intersection == 1,
+         traffic_flow == 2, 
+         reserved_lanes %in% c(0,1,2), 
+         infrastructure_type == 0,
+         max_auth_speed <= 50,
+         bicycle >=1)
+
+ggbetweenstats(data = control_bikes, 
+               x = reserved_lanes, 
+               y = severity)
 ```
 
-```{r Analysis - Road Width}
+When all the controls are put in place, there isn't a significant difference between any of the categories. This is surprising because one would expect bike lanes to decrease the severity of accidents involving cyclists. It's possible that by narrowing down the dataset to a much smaller subset, there are not enough data points spread across the categories to show a significant difference between them.
 
-width_data <- control %>% filter(!is.na(width_of_road) & width_of_road < 100 & intersection == 1) %>% mutate(width_category = as.factor(case_when(
-  width_of_road < 6 ~ "narrow", 
-  width_of_road > 6 & width_of_road < 15 ~ "medium_narrow",  
-  width_of_road > 15 & width_of_road < 60 ~ "medium_wide", 
-  width_of_road > 60 ~ "wide")))
+\newpage
+## Intersection Type & Vehicle Type
 
-width_data %>% group_by(width_category) %>% summarise(avg_severity = mean(severity), count = n())
+This section is observing if different types of vehicles have more or less severe accidents at different types of intersections.
 
-ggbetweenstats(data = width_data, x = width_category, y = severity)
+```{r Analysis - Intersection Type & Vehicle Type, message=FALSE, warning=FALSE, fig.show="hold", out.width="50%", fig.height= 5}
+vehicle_intersection <- data_clean %>% 
+  filter(road_category %in% c(2,3), 
+         intersection %in% c(2,3,4,5,6),
+         traffic_flow == 2, 
+         reserved_lanes %in% c(0,1,2), 
+         infrastructure_type == 0,
+         max_auth_speed <= 50) 
 
-ggbetweenstats(data = width_data, x = width_category, y = deaths)
+vehicle_intersection %>% 
+  group_by(intersection) %>% 
+  summarise(passenger_car = sum(passenger_car), 
+            bicycle = sum(bicycle), 
+            two_wheels = sum(two_wheels), 
+            heavy_truck = sum(heavy_truck))
+
+ggbetweenstats(data = dplyr::filter(vehicle_intersection, passenger_car >= 1), 
+               x = intersection, 
+               y = severity,
+               title = "Passenger Vehicle")
+
+ggbetweenstats(data = dplyr::filter(vehicle_intersection, bicycle >= 1), 
+               x = intersection, 
+               y = severity,
+               title = "Bicycle")
+
+ggbetweenstats(data = dplyr::filter(vehicle_intersection, two_wheels >= 1), 
+               x = intersection, 
+               y = severity,
+               title = "Motorized Vehicles: Two Axles")
+
+ggbetweenstats(data = dplyr::filter(vehicle_intersection, heavy_truck >= 1), 
+               x = intersection, 
+               y = severity,
+               title = "Commercial Vehicle")
+```
+
+The only car category that showed a noticeable difference between intersection types is commercial vehicles. However, category 5 has a very low observation count, (n = 3) even with the statistical test showing a significance between category 5 and others the results could easy change if more data was available. 
+
+\newpage
+## Road Type & Vehicle Type
+
+Similar to the previous section, this section is observing if different types of vehicles have more or less severe accidents on different types of roads.
+
+```{r Analysis - Road Type & Vehicle Type, message=FALSE, warning=FALSE, fig.show="hold", out.width="50%", fig.height= 5}
+control_road <- data_clean %>% 
+  filter(traffic_flow == 2, 
+         intersection == 1,
+         reserved_lanes == 0, 
+         infrastructure_type == 0,
+         max_auth_speed <= 50, 
+         road_category %in% c(1,2,3,4,7))
+
+ggbetweenstats(data = dplyr::filter(control_road, passenger_car >= 1), 
+               x = road_category, 
+               y = severity, 
+               title = "Passenger Vehicles")
+
+ggbetweenstats(data = dplyr::filter(control_road, bicycle >= 1), 
+               x = road_category, 
+               y = severity, 
+               title = "Bicycles")
+
+ggbetweenstats(data = dplyr::filter(control_road, two_wheels >= 1), 
+               x = road_category, 
+               y = severity, 
+               title = "Motorized Vehicles: Two Axles")
+
+ggbetweenstats(data = dplyr::filter(control_road, heavy_truck >= 1), 
+               x = road_category, 
+               y = severity, 
+               title = "Commercial Vehicles")
 
 ```
 
-```{r Analysis - Max Speed & Width}
-max_auth_speeddata <- control %>% filter(!is.na(max_auth_speed) & intersection == 1)  %>% summarise(avg_severity = mean(severity), count = n(), avg_speed = mean(max_auth_speed), max_speed = max(max_auth_speed), min_speed = min(max_auth_speed), sd = sd(max_auth_speed))
-max_auth_speeddata
+Road type, specifically national, municipal and communal roads (categories 2,3 & 4) show a significant difference between at least two of them for all vehicle types except commercial vehicles. This comparison was done with all the other variables being controlled, indicating that this difference has something to do with the road type specifically. It's possible some human element is influencing this result, like possibly drunk drivers are more likely to use communal roads, further research would be needed to rule out these extraneous variables.
 
-speed_width <- control %>% filter(!is.na(width_of_road) & !is.na(max_auth_speed) & intersection == 1) %>% select(Num_Acc, severity, deaths, width_of_road, max_auth_speed) %>% mutate(width_speed = case_when(
-  width_of_road > 10 & max_auth_speed < 60 ~ "lowspeed_wide", 
-  width_of_road > 10 & max_auth_speed > 60 ~ "highspeed_wide", 
-  width_of_road < 10 & max_auth_speed < 60 ~ "lowspeed_narrow", 
-  width_of_road < 10 & max_auth_speed > 60 ~ "highspeed_narrow"))
+\newpage
+## Speed Limit & Road Width
 
+```{r Analysis - Max Speed & Width, message=FALSE, warning=FALSE}
+max_auth_speeddata <- data_clean %>% 
+  filter(!is.na(max_auth_speed), 
+         intersection == 1, 
+         road_category == 3,
+         traffic_flow == 2, 
+         reserved_lanes == 0, 
+         infrastructure_type == 0,
+         !is.na(width_of_road))  
+max_auth_speeddata %>% 
+  summarise(avg_severity = mean(severity), 
+            count = n(), 
+            avg_speed = mean(max_auth_speed), 
+            max_speed = max(max_auth_speed), 
+            min_speed = min(max_auth_speed), 
+            sd = sd(max_auth_speed))
 
-ggbetweenstats(data = speed_width,x = width_speed, y = severity)
+speed_width <- max_auth_speeddata  %>% 
+  select(Num_Acc, severity, 
+         deaths, width_of_road, 
+         max_auth_speed) %>% 
+  mutate(width_speed = case_when(
+  width_of_road < 20 & max_auth_speed <= 50 ~ "lowspeed_narrow", 
+  width_of_road > 20 & max_auth_speed <= 50 ~ "lowspeed_wide"))
 
-ggbetweenstats(data = speed_width, x = width_speed, y = deaths)
-
+ggbetweenstats(data = speed_width,
+               x = width_speed, 
+               y = severity)
 ```
 
-```{r Analysis - Intersection Type & Vehicle Type}
+This question is trying to see if individuals will go faster, and therefore sustain more injuries in accidents, on wider roads even if the speed limit is low. Compared to drivers who would naturally drive slower when the road is narrower. While there is a difference between mean severity of the two groups it is not significant. This is most likely because there are not enough data points with the road width recorded, causing a very small sample size.
 
-control %>% filter(intersection %in% c(2,3,4,5,6)) %>% group_by(intersection) %>% summarise(passenger_car = sum(passenger_car), bicycle = sum(bicycle), two_wheels = sum(two_wheels), heavy_truck = sum(heavy_truck))
+\newpage
+# Summary & Conculsion
 
+How roads are designed influences how severe accidents are. Some findings from this report were to be expected, like higher speed limits correlate to more severe accidents, but others were less predictable for instance, accidents that occur in underground tunnels are significantly less severe than those that occur on bridges. This report alone can not provide definitive answers for the four main questions presented in the introduction, but it was able to provide insight into what the future answers might be. 
 
-ggbetweenstats(data = dplyr::filter(control, intersection %in% c(2,3,4,5,6) & passenger_car >= 1), x = intersection, y = severity)
+This report revolves around the logic of the severity score, which is an aggregate of the level of injury for each individual who was involved in each accident. However, this score is not infallible as an accident where one person was involved and they passed away would have the same severity score as an accident were 3 people were slightly injured. While the scoring system is not perfect, it did give a metric to compare each accident to the other, the raw number of deaths wouldn't have been a good metric to use as only 3,200 accidents out of 58,000 had a person die during the accident. Another source of bias specifically for analysis that involved the road width variable was there was less than 500 accidents that had this information recorded. This made it hard to combine the road width variable with others to see if there was a correlation between them. Further research with more accurate data would be needed to come to a conclusion regarding road width, severity and other variables. 
 
-ggbetweenstats(data = dplyr::filter(control, intersection %in% c(2,3,4,5,6) & bicycle >= 1), x = intersection, y = severity)
-
-ggbetweenstats(data = dplyr::filter(control, intersection %in% c(2,3,4,5,6) & two_wheels >= 1), x = intersection, y = severity)
-
-ggbetweenstats(data = dplyr::filter(control, intersection %in% c(2,3,4,5,6) & heavy_truck >= 1), x = intersection, y = severity)
-```
-
-```{r Analysis - Reserved Lanes & Bikes}
-control_bikes <- data_clean %>% filter(road_category %in% c( 3,4, 5) & traffic_flow == 2 & infrastructure_type == 0 & bicycle >=1 & reserved_lanes %in% c(0,1,2))
-
-ggbetweenstats(data = control_bikes, x = reserved_lanes, y = severity)
-
-ggbetweenstats(data = control_bikes, x = reserved_lanes, y = deaths)
-
-```
-
-```{r Analysis - Deadly Accidents}
-deadly_accidents <- data_clean %>% mutate(death_occured = case_when(deaths > 0 ~ "yes", 
-                                                                    deaths == 0 ~ "no"))
-
-ggbetweenstats(data = deadly_accidents, x = death_occured, y = max_auth_speed)
-
-
-```
+This dataset was just a part of the picture of road design and safety. Because the only time this data was collected was when an accident occurred, it is missing data points where no accident happened but the driver was still acting in an unsafe manner. Further research into this subject should focus on specific questions and frame the data collection around those questions, to ensure a fuller picture of what is happening on the road is captured. Ultimately, this report was able to show a correlation between certain road features and accident severity, but it wasn't able to answer conclusively how certain road features influenced accident severity.
